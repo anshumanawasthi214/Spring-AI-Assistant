@@ -33,5 +33,4 @@ The backend is custom-built using Spring Boot, and the frontend is auto-generate
 ### 5. Run deepseek model
 ### 6. Run frontend 
 
-
-![Project Screenshot](Spring AI Assistant user interface.png)
+![Spring AI UI](Spring%20AI%20%20Assistant%20user%20interface.png)
