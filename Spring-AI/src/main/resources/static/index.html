@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Spring AI Chat</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg: #f0f2f5;
+      --fg: #000;
+      --card: #fff;
+      --border: #ccc;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1e1e1e;
+      --fg: #fff;
+      --card: #2c2c2c;
+      --border: #444;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 30px;
+      background: var(--card);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      resize: vertical;
+      margin-top: 10px;
+      background: var(--bg);
+      color: var(--fg);
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px 20px;
+      font-size: 16px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .loader {
+      display: none;
+      margin-top: 10px;
+      font-style: italic;
+      color: var(--fg);
+    }
+
+    .chat {
+      margin-top: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .message {
+      padding: 15px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+    }
+
+    .user {
+      text-align: right;
+      font-weight: bold;
+    }
+
+    .ai {
+      background: var(--card);
+      border-left: 4px solid #007BFF;
+    }
+
+    .theme-toggle {
+      float: right;
+      margin-top: -10px;
+    }
+  </style>
+</head>
+<body data-theme="light">
+
+  <div class="container">
+    <h1>Ask Spring AI <button class="theme-toggle" onclick="toggleTheme()">🌓</button></h1>
+
+    <label for="prompt">Your prompt:</label>
+    <textarea id="prompt" rows="4" placeholder="e.g., Tell me about Java 8 features..."></textarea>
+    <button onclick="sendPrompt()">Send</button>
+    <div class="loader" id="loader">🧠 Thinking...</div>
+
+    <div class="chat" id="chat"></div>
+  </div>
+
+  <script>
+    let buffer = '';
+
+    function toggleTheme() {
+      const body = document.body;
+      body.dataset.theme = body.dataset.theme === 'dark' ? 'light' : 'dark';
+    }
+
+    function sendPrompt() {
+      const prompt = document.getElementById('prompt').value.trim();
+      const loader = document.getElementById('loader');
+      const chat = document.getElementById('chat');
+
+      if (!prompt) return;
+
+      // Reset buffer
+      buffer = '';
+      loader.style.display = 'block';
+
+      // Show user message
+      const userMsg = document.createElement('div');
+      userMsg.className = 'message user';
+      userMsg.innerText = prompt;
+      chat.appendChild(userMsg);
+
+      // Create AI message placeholder
+      const aiMsg = document.createElement('div');
+      aiMsg.className = 'message ai';
+      const aiContent = document.createElement('div');
+      aiMsg.appendChild(aiContent);
+      chat.appendChild(aiMsg);
+
+      // Scroll to latest
+      chat.scrollTop = chat.scrollHeight;
+
+      const encodedPrompt = encodeURIComponent(prompt);
+      const eventSource = new EventSource(`/springAi/ai?query=${encodedPrompt}`);
+
+      eventSource.onmessage = function(event) {
+        buffer += event.data;
+
+        const cleaned = cleanUp(buffer);
+        aiContent.innerHTML = marked.parse(cleaned);
+
+        chat.scrollTop = chat.scrollHeight;
+      };
+
+      eventSource.onerror = function(error) {
+        console.error("Streaming error:", error);
+        loader.style.display = 'none';
+        eventSource.close();
+        aiContent.innerHTML += "\n\n_Connection closed_";
+      };
+
+      eventSource.onopen = function() {
+        console.log("Connection opened");
+      };
+
+      eventSource.onclose = function() {
+        console.log("Connection closed");
+        loader.style.display = 'none';
+      };
+    }
+
+    function cleanUp(rawText) {
+      return rawText
+        .replace(/###\s*/g, '## ')           // normalize headings
+        .replace(/\*\*\s*/g, '**')           // fix bold spacing
+        .replace(/(\r?\n){3,}/g, '\n\n')     // max 2 line breaks
+        .replace(/-\s+/g, '• ')              // unify bullets
+        .replace(/\s+$/gm, '')               // trim ends
+        .replace(/^\s+/gm, '')               // trim line starts
+        .replace(/•\s+\*/g, '•')             // bullet-star fix
+        .replace(/\*{2,}/g, '**');           // triple or more stars
+    }
+  </script>
+
+</body>
+</html>
