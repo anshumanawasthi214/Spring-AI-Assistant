@@ -20,7 +20,7 @@ The backend is custom-built using Spring Boot, and the frontend is auto-generate
 - **Backend:** Spring Boot, Spring AI, Java
 - **AI Model:** [Ollama](https://ollama.com/) — `deepseek-coder:1.5b`
 - **Frontend:** React (auto-generated using AI)
-- **Build Tools:** Maven or Gradle
+- **Build Tools:** Maven
 
 ---
 
